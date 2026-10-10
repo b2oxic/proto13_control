@@ -35,3 +35,19 @@ The MQTT service is responsible for coordinating the flow between:
 
 - sort-only
 - inventory-and-sort
+
+## Legacy MQTT protocol notes
+
+The earlier prototype used a controller topic that could be overridden with
+`--topic`, defaulting to `mtgproto14/controller`, while image storage could be
+changed with `--base`. The reference database was always loaded from the project
+local reference JSON, independent of the active working directory or storage
+location.
+
+The service subscribed on connection and reconnection. Only the exact payload
+`imager_analyze_card` triggered a capture. Responses on the same topic were of
+the form `sorter_move_to_<code>`, where the code was W, U, B, R, G, or M for
+multicolor cards. The original protocol used an empty suffix for both colorless
+cards and unidentified or failed captures; these could not be distinguished by
+the sorter. Destination mappings should be confirmed on the EV3 before operating
+the mechanism.
