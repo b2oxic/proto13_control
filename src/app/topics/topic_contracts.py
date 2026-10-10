@@ -22,3 +22,14 @@ SYSTEM_STATUS = {
     "mode": "sort_only | inventory_and_sort",
     "timestamp": "timestamp",
 }
+
+QUEUE_UPDATE = {
+    "type": "queue_update",
+    "sequence": "int",
+    "action": "advance_card | take_picture | turn_to_color | turn_by_degrees | return_home | release_card",
+    "target_color": "W | U | B | R | G | M | null",
+    "degrees": "int | null",
+    "card_id": "string | null",
+    "status": "queued | in_progress | complete | failed",
+    "timestamp": "timestamp",
+}
