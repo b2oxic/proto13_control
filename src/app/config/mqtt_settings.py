@@ -14,6 +14,7 @@ class MqttConfig:
     username: str | None = None
     password: str | None = None
     ev3_device_id: str = "ev3-01"
+    android_device_id: str = "android-01"
     controller_id: str = "controller-01"
     keepalive: int = 60
 
@@ -30,6 +31,7 @@ class MqttConfig:
             username=os.getenv("MQTT_USERNAME") or None,
             password=os.getenv("MQTT_PASSWORD") or None,
             ev3_device_id=os.getenv("MQTT_EV3_DEVICE_ID", "ev3-01"),
+            android_device_id=os.getenv("MQTT_ANDROID_DEVICE_ID", "android-01"),
             controller_id=os.getenv("MQTT_CONTROLLER_ID", "controller-01"),
             keepalive=int(os.getenv("MQTT_KEEPALIVE", "60")),
         )

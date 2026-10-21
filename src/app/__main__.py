@@ -60,6 +60,7 @@ def _run_controller(log_dir: str, db_path: str) -> None:
     try:
         while True:
             time.sleep(1)
+            controller.tick()
     except KeyboardInterrupt:
         pass
     finally:

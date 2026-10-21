@@ -36,6 +36,29 @@ The controller is responsible for coordinating the flow between:
 - sort-only
 - inventory-and-sort
 
+## Command queues
+
+The controller keeps one FIFO queue per device (EV3 and Android). Only one
+command is in flight per device. The next is sent when the device finishes:
+`ev3_command_result` with `status: complete`, or `capture_result` with
+`status: success`. `accepted` / `in_progress` reset the timeout. On
+`failed` / `retry` / timeout the command is resent (same `request_id`) up to 2
+times, then dropped and the queue faults and pauses (controller state
+`degraded`) until `resume_queues`. Queue depth is in the retained status
+message under `queues`.
+
+Control messages (publish to `proto13/controller/{controller_id}/request`):
+
+| `type` | Fields |
+|---|---|
+| `enqueue_ev3_command` | `action`, optional `target_color`, `degrees`, `card_id` |
+| `enqueue_capture` | optional `mode` (`sort_only` / `inventory_and_sort`) |
+| `set_mode` | `mode` |
+| `pause_queues`, `resume_queues`, `clear_queues` | none |
+
+Device IDs default to `ev3-01` / `android-01` (`MQTT_EV3_DEVICE_ID`,
+`MQTT_ANDROID_DEVICE_ID`).
+
 ## How to run
 
 Run the controller (listens, logs, and publishes retained status):
