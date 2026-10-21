@@ -1,10 +1,10 @@
-# Proto13 MQTT Service
+# Proto13 Controller
 
-This project hosts the message-broker layer for the Proto13 card sort pipeline.
+This project is the controller application for the Proto13 card sorting pipeline. It uses a separate MQTT broker (Mosquitto) to communicate with Android and EV3 components.
 
 ## Purpose
 
-The MQTT service is responsible for coordinating the flow between:
+The controller is responsible for coordinating the flow between:
 - the Android card-recognition app
 - the EV3 sorting logic
 - inventory/status tracking
@@ -25,11 +25,11 @@ The MQTT service is responsible for coordinating the flow between:
 
 ## Proposed topic layout
 
-- proto13/capture/request
-- proto13/capture/result
-- proto13/system/status
-- proto13/system/diagnostics
-- proto13/queue/update
+- `proto13/android/{android_id}/request` - controller asks that Android imager to capture and recognize a card (`type: capture_request`, includes `request_id`)
+- `proto13/controller/{controller_id}/capture/result` - Android imager publishes the correlated result; that controller subscribes
+- `proto13/ev3/{ev3_id}/request` - controller asks that EV3 to sort (`type: ev3_queue_command`)
+- `proto13/{entity_type}/{device_id}/status/request` - send `run_status_check` or `run_diagnostics`, with a `request_id`
+- `proto13/{entity_type}/{device_id}/status` - status, diagnostics, or EV3 command result, correlated by `request_id`
 
 ## Planned modes
 
@@ -41,7 +41,7 @@ The MQTT service is responsible for coordinating the flow between:
 Clone the repository and install the dependency set:
 
 ```powershell
-cd proto13_mqtt
+cd proto13_control
 python -m pip install -r requirements.txt
 ```
 
@@ -58,9 +58,32 @@ You can also launch the module entry point directly:
 python -m src.app
 ```
 
-The application currently boots the MQTT service entry point and validates the
-configured service object; live broker connection handling can be added as the
-next step for a real runtime queue.
+The app can publish EV3 queue commands using the configured broker. Set these
+environment variables before launching it:
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `MQTT_BROKER_HOST` | `198.168.0.40` | MQTT broker hostname or IP address |
+| `MQTT_BROKER_PORT` | `1883` | MQTT broker port |
+| `MQTT_CLIENT_ID` | `proto13_control` | Unique ID for this publisher connection |
+| `MQTT_USERNAME` / `MQTT_PASSWORD` | unset | Optional broker credentials |
+| `MQTT_EV3_DEVICE_ID` | `ev3-01` | Default EV3 target ID; each EV3 subscribes to its own request topic |
+| `MQTT_KEEPALIVE` | `60` | MQTT keepalive interval in seconds |
+
+For example, send a color-turn command with:
+
+```powershell
+$env:MQTT_BROKER_HOST = "198.168.0.40"
+python run_mqtt.py send-ev3-command turn_to_color --device-id ev3-01 --target-color R
+```
+
+Each EV3 must connect to the same broker and subscribe to its own request topic,
+such as `proto13/ev3/ev3-01/request`. MQTT delivers by topic, not by
+device ID in the payload. The request is JSON, has a unique `request_id`, and
+follows the `EV3_QUEUE_COMMAND` contract. EV3 completion/failure belongs in an
+`EV3_COMMAND_RESULT` response on its status topic, not in the command request.
+The service and its publisher behavior can be unit-tested with a fake MQTT
+client without a broker.
 
 ## Legacy MQTT protocol notes
 
