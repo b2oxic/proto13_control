@@ -13,7 +13,8 @@ CAPTURE_RESULT = {
     "card_name": "string",
     "match_confidence": "float",
     "mode": "sort_only | inventory_and_sort",
-    "status": "success | retry | failure",
+    "status": "accepted | in_progress | success | retry | failure",
+    "error": "string | null",
     "processed_at": "timestamp",
 }
 

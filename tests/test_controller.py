@@ -104,3 +104,26 @@ def test_json_formatter_includes_extra_fields():
     record.request_id = "r1"
     entry = json.loads(JsonFormatter().format(record))
     assert entry["event"] == "hello" and entry["request_id"] == "r1"
+
+
+def test_android_progress_results_keep_capture_in_flight():
+    controller, client, _ = make_controller()
+    controller.start()
+    controller.handle_message(
+        "proto13/controller/controller-01/request",
+        {"type": "enqueue_capture", "request_id": "c1"},
+    )
+    queue = controller.android_queue
+    assert queue.snapshot()["in_flight"] == "c1"
+    for status in ("accepted", "in_progress"):
+        controller.handle_message(
+            "proto13/controller/controller-01/capture/result",
+            {"type": "capture_result", "request_id": "c1", "status": status},
+        )
+        assert queue.snapshot()["in_flight"] == "c1"
+        assert queue.snapshot()["faulted"] is False
+    controller.handle_message(
+        "proto13/controller/controller-01/capture/result",
+        {"type": "capture_result", "request_id": "c1", "status": "success"},
+    )
+    assert queue.snapshot()["in_flight"] is None

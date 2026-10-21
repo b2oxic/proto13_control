@@ -59,6 +59,14 @@ Control messages (publish to `proto13/controller/{controller_id}/request`):
 Device IDs default to `ev3-01` / `android-01` (`MQTT_EV3_DEVICE_ID`,
 `MQTT_ANDROID_DEVICE_ID`).
 
+Device contract: both devices publish a retained `system_status` (with a
+last-will that marks them offline) and answer `run_status_check` /
+`run_diagnostics`. The Android app reports `capture_result` with `status`
+`accepted` -> `in_progress` (heartbeat every 5 s) -> `success` / `retry` /
+`failure` (with `error`). A device must not re-run a command it already
+completed when the controller resends the same `request_id`; it resends the
+stored result instead. `retry` and `failure` are re-run.
+
 ## How to run
 
 Run the controller (listens, logs, and publishes retained status):

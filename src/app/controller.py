@@ -175,7 +175,9 @@ class Controller:
                 "status": status,
             },
         )
-        if status == "success":
+        if status in {"accepted", "in_progress"}:
+            self.android_queue.progress(request_id)
+        elif status == "success":
             self.android_queue.complete(request_id)
         elif status == "retry":
             self.android_queue.fail(request_id, "recognition asked for retry")
