@@ -103,7 +103,7 @@ def test_mqtt_config_reads_broker_settings_from_environment(monkeypatch):
 
 def test_mqtt_service_publishes_json_to_client():
     class FakeClient:
-        def publish(self, topic, payload, qos):
+        def publish(self, topic, payload, qos, retain=False):
             self.message = (topic, payload, qos)
 
     client = FakeClient()
@@ -138,6 +138,6 @@ def test_mqtt_service_waits_for_connection_callback():
 
     service.connect()
 
-    assert client.connection == ("198.168.0.40", 1883, 60)
+    assert client.connection == ("192.168.0.55", 1883, 60)
     assert service._connected_event.is_set()
     service.disconnect()

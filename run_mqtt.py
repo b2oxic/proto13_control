@@ -30,6 +30,8 @@ def ensure_mqtt_dependency() -> None:
 
 def main() -> None:
     ensure_mqtt_dependency()
+    if len(sys.argv) == 1:
+        sys.argv.append("run")
     print("Launching Proto13 controller entry point...")
     runpy.run_module("src.app", run_name="__main__")
 

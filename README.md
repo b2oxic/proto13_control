@@ -38,6 +38,18 @@ The controller is responsible for coordinating the flow between:
 
 ## How to run
 
+Run the controller (listens, logs, and publishes retained status):
+
+```powershell
+python -m src.app run
+```
+
+Console output is human-readable; `logs/controller.jsonl` holds structured JSON
+logs (for Loki/Grafana) and `data/proto13.db` (SQLite, `events` table) records
+every MQTT message sent or received. Set `MQTT_CONTROLLER_ID` to change the
+controller ID (default `controller-01`). Its retained status is on
+`proto13/controller/{id}/status`; an unexpected disconnect flips it to offline.
+
 Clone the repository and install the dependency set:
 
 ```powershell
@@ -63,7 +75,7 @@ environment variables before launching it:
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `MQTT_BROKER_HOST` | `198.168.0.40` | MQTT broker hostname or IP address |
+| `MQTT_BROKER_HOST` | `192.168.0.55` | MQTT broker hostname or IP address |
 | `MQTT_BROKER_PORT` | `1883` | MQTT broker port |
 | `MQTT_CLIENT_ID` | `proto13_control` | Unique ID for this publisher connection |
 | `MQTT_USERNAME` / `MQTT_PASSWORD` | unset | Optional broker credentials |
@@ -73,7 +85,7 @@ environment variables before launching it:
 For example, send a color-turn command with:
 
 ```powershell
-$env:MQTT_BROKER_HOST = "198.168.0.40"
+$env:MQTT_BROKER_HOST = "192.168.0.55"
 python run_mqtt.py send-ev3-command turn_to_color --device-id ev3-01 --target-color R
 ```
 

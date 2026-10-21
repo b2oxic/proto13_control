@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from threading import Event
-from typing import Any
+from typing import Any, Callable
 
 from ..config.mqtt_settings import MqttConfig
 
@@ -21,6 +21,18 @@ class MqttService:
         self.config = config or MqttConfig.from_environment()
         self._connected_event = Event()
         self._connection_error: str | None = None
+        self._subscriptions: list[str] = []
+        self._message_handler: Callable[[str, dict[str, Any]], None] | None = None
+        self._will: tuple[str, dict[str, Any]] | None = None
+
+    def set_message_handler(
+        self, handler: Callable[[str, dict[str, Any]], None]
+    ) -> None:
+        self._message_handler = handler
+
+    def set_will(self, topic: str, payload: dict[str, Any]) -> None:
+        """Message the broker publishes (retained) if this client drops unexpectedly."""
+        self._will = (topic, payload)
 
     def connect(self) -> None:
         if self.client is None:
@@ -33,9 +45,15 @@ class MqttService:
             if self.config.username:
                 self.client.username_pw_set(self.config.username, self.config.password)
 
+        if self._will is not None:
+            will_topic, will_payload = self._will
+            self.client.will_set(
+                will_topic, json.dumps(will_payload), qos=1, retain=True
+            )
         self._connected_event.clear()
         self._connection_error = None
         self.client.on_connect = self._on_connect
+        self.client.on_message = self._on_message
         self.client.connect(
             self.config.broker_host,
             self.config.broker_port,
@@ -60,16 +78,39 @@ class MqttService:
     ) -> None:
         if reason_code != 0:
             self._connection_error = str(reason_code)
+        else:
+            # Subscriptions are lost on a clean-session reconnect, so restore them.
+            for topic in self._subscriptions:
+                client.subscribe(topic)
         self._connected_event.set()
 
-    def publish(self, topic: str, payload: dict[str, Any], qos: int = 1) -> Any:
+    def _on_message(self, client: Any, userdata: Any, message: Any) -> None:
+        if self._message_handler is None:
+            return
+        try:
+            payload = json.loads(message.payload)
+        except (ValueError, UnicodeDecodeError):
+            payload = {"raw": message.payload.decode("utf-8", errors="replace")}
+        if not isinstance(payload, dict):
+            payload = {"value": payload}
+        self._message_handler(message.topic, payload)
+
+    def publish(
+        self,
+        topic: str,
+        payload: dict[str, Any],
+        qos: int = 1,
+        retain: bool = False,
+    ) -> Any:
         if self.client is None:
             raise RuntimeError("MQTT client is not configured.")
-        return self.client.publish(topic, json.dumps(payload), qos=qos)
+        return self.client.publish(topic, json.dumps(payload), qos=qos, retain=retain)
 
     def subscribe(self, topic: str) -> None:
         if self.client is None:
             raise RuntimeError("MQTT client is not configured.")
+        if topic not in self._subscriptions:
+            self._subscriptions.append(topic)
         self.client.subscribe(topic)
 
     def disconnect(self) -> None:
